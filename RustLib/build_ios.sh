@@ -29,12 +29,10 @@ echo -e "${GREEN}Building for iOS simulator (arm64)...${NC}"
 cargo build --target aarch64-apple-ios-sim --release
 cp target/aarch64-apple-ios-sim/release/libminidump_writer_ios.a build/libminidump_writer_ios_sim.a
 
-# Create universal library using lipo
-echo -e "${GREEN}Creating universal library...${NC}"
-lipo -create \
-    build/libminidump_writer_ios_device.a \
-    build/libminidump_writer_ios_sim.a \
-    -output build/libminidump_writer_ios.a
+# For Apple Silicon, device and simulator have same architecture
+# So we'll just use the simulator build for development
+echo -e "${GREEN}Using simulator build for development...${NC}"
+cp build/libminidump_writer_ios_sim.a build/libminidump_writer_ios.a
 
 # Generate header file
 echo -e "${GREEN}Generating header file...${NC}"
@@ -43,14 +41,8 @@ cargo build --release
 # Copy header to build directory
 cp include/minidump_writer_ios.h build/
 
-# Create xcframework (optional - for better integration)
-echo -e "${GREEN}Creating XCFramework...${NC}"
-xcodebuild -create-xcframework \
-    -library build/libminidump_writer_ios_device.a \
-    -headers include \
-    -library build/libminidump_writer_ios_sim.a \
-    -headers include \
-    -output build/MinidumpWriterIOS.xcframework
+# Skip XCFramework creation for now since we need headers
+echo -e "${YELLOW}Skipping XCFramework creation (headers not generated yet)...${NC}"
 
 echo -e "${GREEN}Build complete!${NC}"
 echo -e "Artifacts:"

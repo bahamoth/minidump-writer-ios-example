@@ -1,9 +1,6 @@
-use minidump_writer::apple::ios::minidump_writer::MinidumpWriter;
+use minidump_handler::{init_crash_handler, write_minidump, HandlerConfig};
 use std::ffi::{c_char, c_int, CStr};
-use std::fs;
-use std::path::Path;
-use std::sync::Mutex;
-use libc::{sigaction, siginfo_t, SIGBUS, SIGSEGV, SIGABRT, SIGFPE, SIGILL, SIGTRAP};
+use std::path::PathBuf;
 
 /// Result type for FFI functions
 #[repr(C)]
@@ -12,137 +9,86 @@ pub struct FFIResult {
     error_message: *const c_char,
 }
 
-/// Opaque handle to MinidumpWriter
-pub struct MinidumpWriterHandle {
-    writer: MinidumpWriter,
-}
+impl FFIResult {
+    fn success() -> Self {
+        Self {
+            success: true,
+            error_message: std::ptr::null(),
+        }
+    }
 
-/// Initialize a new MinidumpWriter instance
-#[no_mangle]
-pub extern "C" fn minidump_writer_ios_create() -> *mut MinidumpWriterHandle {
-    let writer = MinidumpWriter::new();
-    let handle = Box::new(MinidumpWriterHandle { writer });
-    Box::into_raw(handle)
-}
+    fn error(msg: &'static str) -> Self {
+        Self {
+            success: false,
+            error_message: msg.as_ptr() as *const c_char,
+        }
+    }
 
-/// Free a MinidumpWriter instance
-#[no_mangle]
-pub extern "C" fn minidump_writer_ios_free(handle: *mut MinidumpWriterHandle) {
-    if !handle.is_null() {
-        unsafe {
-            let _ = Box::from_raw(handle);
+    fn error_owned(msg: String) -> Self {
+        let c_str = std::ffi::CString::new(msg).unwrap();
+        Self {
+            success: false,
+            error_message: c_str.into_raw(),
         }
     }
 }
 
 /// Write a minidump to the specified path
 #[no_mangle]
-pub extern "C" fn minidump_writer_ios_write_dump(
-    handle: *mut MinidumpWriterHandle,
-    path: *const c_char,
-) -> FFIResult {
-    if handle.is_null() || path.is_null() {
-        return FFIResult {
-            success: false,
-            error_message: b"Invalid parameters\0".as_ptr() as *const c_char,
-        };
+pub extern "C" fn minidump_writer_ios_write_dump(path: *const c_char) -> FFIResult {
+    if path.is_null() {
+        return FFIResult::error("Path is null\0");
     }
 
     let path_str = unsafe {
         match CStr::from_ptr(path).to_str() {
             Ok(s) => s,
-            Err(_) => {
-                return FFIResult {
-                    success: false,
-                    error_message: b"Invalid path encoding\0".as_ptr() as *const c_char,
-                };
-            }
+            Err(_) => return FFIResult::error("Invalid path encoding\0"),
         }
     };
 
-    let writer = unsafe { &mut (*handle).writer };
-
     // Create parent directory if needed
-    if let Some(parent) = Path::new(path_str).parent() {
+    if let Some(parent) = std::path::Path::new(path_str).parent() {
         if !parent.exists() {
-            if let Err(_) = fs::create_dir_all(parent) {
-                return FFIResult {
-                    success: false,
-                    error_message: b"Failed to create output directory\0".as_ptr() as *const c_char,
-                };
+            if let Err(_) = std::fs::create_dir_all(parent) {
+                return FFIResult::error("Failed to create output directory\0");
             }
         }
     }
 
-    match writer.write_minidump(path_str) {
-        Ok(_) => FFIResult {
-            success: true,
-            error_message: std::ptr::null(),
-        },
-        Err(e) => {
-            let error_msg = format!("Failed to write minidump: {}\0", e);
-            let c_str = std::ffi::CString::new(error_msg).unwrap();
-            FFIResult {
-                success: false,
-                error_message: c_str.into_raw(),
-            }
-        }
+    match write_minidump(std::path::Path::new(path_str)) {
+        Ok(_) => FFIResult::success(),
+        Err(e) => FFIResult::error_owned(format!("Failed to write minidump: {}\0", e)),
     }
 }
 
-/// Write a minidump with exception context
+/// Install crash handlers with the specified dump path
 #[no_mangle]
-pub extern "C" fn minidump_writer_ios_write_dump_with_exception(
-    handle: *mut MinidumpWriterHandle,
-    path: *const c_char,
-    exception_type: u32,
-    exception_code: u64,
-    exception_address: u64,
-) -> FFIResult {
-    if handle.is_null() || path.is_null() {
-        return FFIResult {
-            success: false,
-            error_message: b"Invalid parameters\0".as_ptr() as *const c_char,
-        };
+pub extern "C" fn minidump_writer_ios_install_handlers(dump_path: *const c_char) -> FFIResult {
+    if dump_path.is_null() {
+        return FFIResult::error("Dump path is required\0");
     }
 
     let path_str = unsafe {
-        match CStr::from_ptr(path).to_str() {
+        match CStr::from_ptr(dump_path).to_str() {
             Ok(s) => s,
-            Err(_) => {
-                return FFIResult {
-                    success: false,
-                    error_message: b"Invalid path encoding\0".as_ptr() as *const c_char,
-                };
-            }
+            Err(_) => return FFIResult::error("Invalid path encoding\0"),
         }
     };
 
-    let writer = unsafe { &mut (*handle).writer };
-
-    // Create crash context
-    let crash_context = minidump_writer::apple::ios::crash_context::IosCrashContext {
-        exception_type,
-        exception_code,
-        exception_address,
-        thread: mach2::mach_init::mach_thread_self(),
+    let config = HandlerConfig {
+        dump_directory: PathBuf::from(path_str),
+        filename_prefix: "ios_crash".to_string(),
+        append_timestamp: true,
+        pre_dump_callback: Some(|| {
+            // This will be called before writing the dump
+            // Could be used for logging, etc.
+        }),
     };
 
-    writer.crash_context = Some(crash_context);
-
-    match writer.write_minidump(path_str) {
-        Ok(_) => FFIResult {
-            success: true,
-            error_message: std::ptr::null(),
-        },
-        Err(e) => {
-            let error_msg = format!("Failed to write minidump with exception: {}\0", e);
-            let c_str = std::ffi::CString::new(error_msg).unwrap();
-            FFIResult {
-                success: false,
-                error_message: c_str.into_raw(),
-            }
-        }
+    match init_crash_handler(config) {
+        Ok(_) => FFIResult::success(),
+        Err(e) => FFIResult::error_owned(format!("Failed to install handlers: {}\0", e)),
     }
 }
 
@@ -156,109 +102,48 @@ pub extern "C" fn minidump_writer_ios_free_error_message(msg: *const c_char) {
     }
 }
 
-/// Global path for crash dumps
-static CRASH_DUMP_PATH: Mutex<Option<String>> = Mutex::new(None);
-
-/// Signal handler that generates minidump on crash
-extern "C" fn signal_handler(sig: c_int, info: *mut siginfo_t, _context: *mut libc::c_void) {
-    // This runs in signal context - must be signal-safe!
-    unsafe {
-        // Get the pre-configured dump path
-        if let Ok(guard) = CRASH_DUMP_PATH.try_lock() {
-            if let Some(ref base_path) = *guard {
-                // Generate filename with signal info
-                let filename = match sig {
-                    SIGSEGV => "crash_sigsegv",
-                    SIGBUS => "crash_sigbus",
-                    SIGABRT => "crash_sigabrt",
-                    SIGFPE => "crash_sigfpe",
-                    SIGILL => "crash_sigill",
-                    SIGTRAP => "crash_sigtrap",
-                    _ => "crash_unknown",
-                };
-                
-                let mut path = base_path.clone();
-                path.push_str("/");
-                path.push_str(filename);
-                path.push_str(".dmp");
-                
-                // Create crash context
-                let crash_context = minidump_writer::apple::ios::crash_context::IosCrashContext {
-                    exception_type: sig as u32,
-                    exception_code: if !info.is_null() { (*info).si_code as u64 } else { 0 },
-                    exception_address: if !info.is_null() { (*info).si_addr as u64 } else { 0 },
-                    thread: mach2::mach_init::mach_thread_self(),
-                };
-                
-                // Write minidump
-                let mut writer = MinidumpWriter::new();
-                writer.crash_context = Some(crash_context);
-                let _ = writer.write_minidump(&path);
-            }
-        }
-        
-        // Re-raise the signal to trigger default behavior
-        libc::signal(sig, libc::SIG_DFL);
-        libc::raise(sig);
-    }
-}
-
-/// Install crash handlers for common signals
-#[no_mangle]
-pub extern "C" fn minidump_writer_ios_install_handlers(dump_path: *const c_char) -> FFIResult {
-    if dump_path.is_null() {
-        return FFIResult {
-            success: false,
-            error_message: b"Dump path is required\0".as_ptr() as *const c_char,
-        };
-    }
-    
-    let path_str = unsafe {
-        match CStr::from_ptr(dump_path).to_str() {
-            Ok(s) => s,
-            Err(_) => {
-                return FFIResult {
-                    success: false,
-                    error_message: b"Invalid path encoding\0".as_ptr() as *const c_char,
-                };
-            }
-        }
-    };
-    
-    // Store the dump path
-    {
-        let mut guard = CRASH_DUMP_PATH.lock().unwrap();
-        *guard = Some(path_str.to_string());
-    }
-    
-    // Install signal handlers
-    unsafe {
-        let mut sa: sigaction = std::mem::zeroed();
-        sa.sa_sigaction = signal_handler as usize;
-        sa.sa_flags = libc::SA_SIGINFO;
-        
-        let signals = [SIGSEGV, SIGBUS, SIGABRT, SIGFPE, SIGILL, SIGTRAP];
-        
-        for &sig in &signals {
-            if sigaction(sig, &sa, std::ptr::null_mut()) != 0 {
-                return FFIResult {
-                    success: false,
-                    error_message: b"Failed to install signal handler\0".as_ptr() as *const c_char,
-                };
-            }
-        }
-    }
-    
-    FFIResult {
-        success: true,
-        error_message: std::ptr::null(),
-    }
-}
-
 /// Check if the library is working properly
 #[no_mangle]
 pub extern "C" fn minidump_writer_ios_test() -> c_int {
     1 // Return 1 for success
+}
+
+/// Trigger various crash types for testing (only in debug builds)
+#[cfg(debug_assertions)]
+pub mod crash_test {
+    use super::*;
+    use minidump_handler::crash_triggers;
+
+    #[no_mangle]
+    pub extern "C" fn minidump_writer_ios_trigger_segfault() {
+        crash_triggers::trigger_segfault();
+    }
+
+    #[no_mangle]
+    pub extern "C" fn minidump_writer_ios_trigger_abort() {
+        crash_triggers::trigger_abort();
+    }
+
+    #[no_mangle]
+    pub extern "C" fn minidump_writer_ios_trigger_bus_error() {
+        #[cfg(not(target_os = "windows"))]
+        crash_triggers::trigger_bus_error();
+    }
+
+    #[no_mangle]
+    pub extern "C" fn minidump_writer_ios_trigger_divide_by_zero() {
+        crash_triggers::trigger_divide_by_zero();
+    }
+
+    #[no_mangle]
+    pub extern "C" fn minidump_writer_ios_trigger_illegal_instruction() {
+        crash_triggers::trigger_illegal_instruction();
+    }
+
+    #[no_mangle]
+    pub extern "C" fn minidump_writer_ios_trigger_stack_overflow() {
+        crash_triggers::trigger_stack_overflow();
+    }
 }
 
 #[cfg(test)]
@@ -266,18 +151,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_create_and_free() {
-        let handle = minidump_writer_ios_create();
-        assert!(!handle.is_null());
-        minidump_writer_ios_free(handle);
+    fn test_write_dump() {
+        let temp_path = "/tmp/test_dump.dmp\0";
+        let result = minidump_writer_ios_write_dump(temp_path.as_ptr() as *const c_char);
+        assert!(result.success);
+        
+        // Clean up
+        let _ = std::fs::remove_file("/tmp/test_dump.dmp");
     }
 
     #[test]
-    fn test_null_handle() {
-        let result = minidump_writer_ios_write_dump(
-            std::ptr::null_mut(),
-            b"test.dmp\0".as_ptr() as *const c_char,
-        );
+    fn test_null_path() {
+        let result = minidump_writer_ios_write_dump(std::ptr::null());
         assert!(!result.success);
     }
 }

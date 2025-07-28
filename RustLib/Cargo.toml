@@ -8,7 +8,7 @@ name = "minidump_writer_ios"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-minidump-writer = { path = "../deps/minidump-writer" }
+minidump-handler = { path = "../minidump-handler" }
 libc = "0.2"
 
 [build-dependencies]

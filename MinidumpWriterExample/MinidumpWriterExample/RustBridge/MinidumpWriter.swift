@@ -9,90 +9,28 @@ import Foundation
 
 /// Errors that can occur during minidump operations
 enum MinidumpError: Error, LocalizedError {
-    case initializationFailed
     case writeFailed(String)
-    case invalidPath
+    case installHandlersFailed(String)
     
     var errorDescription: String? {
         switch self {
-        case .initializationFailed:
-            return "Failed to initialize MinidumpWriter"
         case .writeFailed(let message):
             return "Failed to write minidump: \(message)"
-        case .invalidPath:
-            return "Invalid file path"
+        case .installHandlersFailed(let message):
+            return "Failed to install crash handlers: \(message)"
         }
     }
-}
-
-/// Exception information for crash context
-struct ExceptionInfo {
-    let type: UInt32
-    let code: UInt64
-    let address: UInt64
 }
 
 /// Swift wrapper for the minidump-writer library
 class MinidumpWriter {
-    private var handle: OpaquePointer?
-    
-    /// Initialize a new MinidumpWriter instance
-    init() throws {
-        guard let handle = minidump_writer_ios_create() else {
-            throw MinidumpError.initializationFailed
-        }
-        self.handle = handle
-    }
-    
-    deinit {
-        if let handle = handle {
-            minidump_writer_ios_free(handle)
-        }
-    }
     
     /// Write a minidump to the specified file path
     /// - Parameter path: The file path where the minidump should be saved
     /// - Throws: MinidumpError if the operation fails
-    func writeMinidump(to path: String) throws {
-        guard let handle = handle else {
-            throw MinidumpError.initializationFailed
-        }
-        
+    static func writeMinidump(to path: String) throws {
         let result = path.withCString { cPath in
-            minidump_writer_ios_write_dump(handle, cPath)
-        }
-        
-        if !result.success {
-            let errorMessage = result.error_message != nil
-                ? String(cString: result.error_message!)
-                : "Unknown error"
-            
-            if result.error_message != nil {
-                minidump_writer_ios_free_error_message(result.error_message)
-            }
-            
-            throw MinidumpError.writeFailed(errorMessage)
-        }
-    }
-    
-    /// Write a minidump with exception context
-    /// - Parameters:
-    ///   - path: The file path where the minidump should be saved
-    ///   - exception: Exception information to include in the dump
-    /// - Throws: MinidumpError if the operation fails
-    func writeMinidump(to path: String, withException exception: ExceptionInfo) throws {
-        guard let handle = handle else {
-            throw MinidumpError.initializationFailed
-        }
-        
-        let result = path.withCString { cPath in
-            minidump_writer_ios_write_dump_with_exception(
-                handle,
-                cPath,
-                exception.type,
-                exception.code,
-                exception.address
-            )
+            minidump_writer_ios_write_dump(cPath)
         }
         
         if !result.success {
@@ -131,9 +69,36 @@ class MinidumpWriter {
                 minidump_writer_ios_free_error_message(result.error_message)
             }
             
-            throw MinidumpError.writeFailed(errorMessage)
+            throw MinidumpError.installHandlersFailed(errorMessage)
         }
     }
+    
+    // Crash trigger functions for testing (debug builds only)
+    #if DEBUG
+    static func triggerSegfault() {
+        minidump_writer_ios_trigger_segfault()
+    }
+    
+    static func triggerAbort() {
+        minidump_writer_ios_trigger_abort()
+    }
+    
+    static func triggerBusError() {
+        minidump_writer_ios_trigger_bus_error()
+    }
+    
+    static func triggerDivideByZero() {
+        minidump_writer_ios_trigger_divide_by_zero()
+    }
+    
+    static func triggerIllegalInstruction() {
+        minidump_writer_ios_trigger_illegal_instruction()
+    }
+    
+    static func triggerStackOverflow() {
+        minidump_writer_ios_trigger_stack_overflow()
+    }
+    #endif
 }
 
 /// Utility class for managing minidump files
@@ -160,8 +125,16 @@ class MinidumpManager {
         return "\(prefix)_\(timestamp).dmp"
     }
     
+    /// Generate a full path for a new minidump
+    static func generatePath(prefix: String = "dump") throws -> URL {
+        try ensureDirectoryExists()
+        return minidumpsDirectory.appendingPathComponent(generateFilename(prefix: prefix))
+    }
+    
     /// List all minidump files
     static func listMinidumps() throws -> [URL] {
+        try ensureDirectoryExists()
+        
         let contents = try FileManager.default.contentsOfDirectory(
             at: minidumpsDirectory,
             includingPropertiesForKeys: [.creationDateKey],
@@ -188,5 +161,11 @@ class MinidumpManager {
         for dump in dumps {
             try deleteMinidump(at: dump)
         }
+    }
+    
+    /// Get the size of a minidump file
+    static func getMinidumpSize(at url: URL) -> Int64? {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+        return attributes?[.size] as? Int64
     }
 }

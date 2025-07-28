@@ -103,17 +103,12 @@ struct CrashTestView: View {
         
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                let writer = try MinidumpWriter()
-                let filename = MinidumpManager.generateFilename(prefix: "normal")
-                let filepath = MinidumpManager.minidumpsDirectory
-                    .appendingPathComponent(filename)
-                    .path
-                
-                try writer.writeMinidump(to: filepath)
+                let filepath = try MinidumpManager.generatePath(prefix: "normal")
+                try MinidumpWriter.writeMinidump(to: filepath.path)
                 
                 DispatchQueue.main.async {
                     self.alertTitle = "Success"
-                    self.alertMessage = "Minidump saved as \(filename)"
+                    self.alertMessage = "Minidump saved as \(filepath.lastPathComponent)"
                     self.showingAlert = true
                     self.isGenerating = false
                 }
@@ -131,40 +126,64 @@ struct CrashTestView: View {
     // MARK: - Crash Scenarios
     
     private func crashNullPointer() {
-        // Just crash - the handler will generate the minidump
+        #if DEBUG
+        MinidumpWriter.triggerSegfault()
+        #else
+        // Fallback for release builds
         let ptr: UnsafeMutablePointer<Int>? = nil
         ptr!.pointee = 42
+        #endif
     }
     
     private func crashBusError() {
+        #if DEBUG
+        MinidumpWriter.triggerBusError()
+        #else
         // Force misaligned access
         let data = Data([0x01, 0x02, 0x03, 0x04])
         data.withUnsafeBytes { bytes in
             let misaligned = bytes.baseAddress! + 1
             let _ = misaligned.bindMemory(to: Int64.self, capacity: 1).pointee
         }
+        #endif
     }
     
     private func crashAssertion() {
+        #if DEBUG
+        MinidumpWriter.triggerAbort()
+        #else
         fatalError("Test assertion failure")
+        #endif
     }
     
     private func crashStackOverflow() {
+        #if DEBUG
+        MinidumpWriter.triggerStackOverflow()
+        #else
         func recurse(_ n: Int) {
             let array = [Int](repeating: n, count: 1000)
             recurse(n + array[0])
         }
         recurse(0)
+        #endif
     }
     
     private func crashDivideByZero() {
+        #if DEBUG
+        MinidumpWriter.triggerDivideByZero()
+        #else
         let zero = 0
         let _ = 42 / zero
+        #endif
     }
     
     private func crashBadAccess() {
+        #if DEBUG
+        MinidumpWriter.triggerSegfault() // Same as null pointer
+        #else
         let badPtr = UnsafeMutablePointer<Int>(bitPattern: 0xDEADBEEF)!
         badPtr.pointee = 42
+        #endif
     }
 }
 
