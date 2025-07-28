@@ -1,0 +1,3 @@
+[submodule "deps/minidump-writer"]
+	path = deps/minidump-writer
+	url = https://github.com/bahamoth/minidump-writer.git
