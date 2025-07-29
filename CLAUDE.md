@@ -1,184 +1,190 @@
-# iOS Example App Project Context
+# MinidumpWriter Flutter Test App
 
 ## Project Goal
-This project implements T-012 from @deps/minidump-writer/TASKS.md: Create an iOS example app that serves as a test harness for minidump-writer development on iOS.
+Cross-platform test harness for minidump-writer library, extending the original iOS-only scope (T-012 from @deps/minidump-writer/TASKS.md) to support comprehensive testing across all major platforms.
 
 ### Key Objectives
-- **Primary**: Verify minidump-writer works correctly on iOS simulator and physical devices
-- **Core**: Test all minidump context types are properly captured:
+- **Primary**: Verify minidump-writer works correctly across iOS, Android, Linux, Windows, and macOS
+- **Core**: Test all minidump context types are properly captured on each platform:
   - Thread list with full thread states
   - System information (device, OS, architecture)
   - Memory regions and contents
   - Exception handling for various signals/exceptions
   - Crash context preservation
 - **Critical**: Ensure minidumps can be:
-  - Successfully written to iOS filesystem
+  - Successfully written to platform-specific filesystems
   - Retrieved and analyzed post-crash
-  - Validated for completeness and accuracy
+  - Validated for completeness and accuracy across platforms
 
-## Technical Decisions
+## Technical Stack
 
-### 1. Integration Approach
-- **Current**: Direct Swift FFI (subject to change based on effectiveness)
-- **Priority**: Whatever method best validates minidump-writer functionality
-- **Flexibility**: Open to alternative approaches if they better serve testing needs
+### 1. Flutter + Dart FFI
+- **UI Framework**: Flutter for cross-platform UI
+- **FFI Integration**: dart:ffi for direct Rust library binding
+- **Platforms**: iOS, Android, Linux, Windows, macOS
 
-### 2. Platform Support
-- **Target**: ARM64 only (aarch64-apple-ios, aarch64-apple-ios-sim)
-- **No x86**: No x86_64 simulator support needed
-- **Rationale**: Modern iOS development reality
+### 2. Rust Components
+- **minidump-handler**: Core crash handling library with platform-specific implementations
+- **minidump-gen-cli**: Command-line testing tool for rapid iteration
 
-### 3. Testing Focus
-- **Not a demo**: This is a test harness, not a showcase
-- **Comprehensive**: Must exercise all minidump-writer capabilities
-- **Validation**: Built-in verification of dump contents
-
-## Implementation Plan
-
-### Phase 1: Project Setup ✓
-- [x] Add minidump-writer as git submodule
-- [x] Create project documentation (this file)
-
-### Phase 2: Rust FFI Library
-- [ ] Create RustLib directory with Cargo project
-- [ ] Implement C-compatible wrapper functions:
-  - `minidump_writer_ios_init()` - Initialize the writer
-  - `minidump_writer_ios_write_dump()` - Generate minidump
-  - `minidump_writer_ios_set_crash_handler()` - Install crash handler
-- [ ] Configure iOS targets (aarch64-apple-ios, x86_64-apple-ios-sim)
-- [ ] Create build script for universal library
-
-### Phase 3: iOS App Structure
-- [ ] Create Xcode project (MinidumpWriterExample.xcodeproj)
-- [ ] Set up SwiftUI-based interface
-- [ ] Configure module map or bridging header for FFI
-- [ ] Implement Swift wrapper for Rust functions
-
-### Phase 4: Core Testing Features
-- [ ] Test scenarios for different crash types:
-  - SIGSEGV (null pointer dereference)
-  - SIGBUS (bus error)
-  - SIGABRT (assertion failure)
-  - EXC_BAD_ACCESS (memory access violation)
-  - Stack overflow
-  - Divide by zero
-- [ ] Minidump validation features:
-  - Verify thread count and states
-  - Check system info completeness
-  - Validate memory regions captured
-  - Ensure exception context preserved
-- [ ] File management:
-  - List generated minidumps
-  - Export dumps for analysis
-  - Clear old dumps
-
-### Phase 5: Documentation
-- [ ] README with build instructions
-- [ ] Code comments explaining FFI patterns
-- [ ] Usage examples
+### 3. Architecture
+```
+Flutter App (Dart)
+    ↓ dart:ffi
+minidump-handler (Rust)
+    ↓ platform APIs
+OS Crash Handlers
+```
 
 ## Project Structure
 
 ```
-minidump-writer-ios-example/
+minidump-writer-flutter-test/
 ├── CLAUDE.md (this file)
 ├── README.md
 ├── deps/
 │   └── minidump-writer/ (submodule)
-├── RustLib/
-│   ├── Cargo.toml
-│   ├── src/
-│   │   └── lib.rs (FFI exports)
-│   └── build_ios.sh
-├── MinidumpWriterExample/
-│   ├── MinidumpWriterExample.xcodeproj/
-│   ├── MinidumpWriterExample/
-│   │   ├── App/
-│   │   │   ├── MinidumpWriterExampleApp.swift
-│   │   │   └── AppDelegate.swift
-│   │   ├── Views/
-│   │   │   ├── ContentView.swift
-│   │   │   └── MinidumpListView.swift
-│   │   ├── RustBridge/
-│   │   │   ├── MinidumpWriter.swift (Swift wrapper)
-│   │   │   └── module.modulemap
-│   │   └── Resources/
-│   │       ├── Info.plist
-│   │       └── Assets.xcassets/
-│   └── MinidumpWriterExampleTests/
-└── .gitignore
+├── rust/
+│   ├── Cargo.toml (workspace)
+│   ├── minidump-handler/
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       └── lib.rs
+│   └── minidump-gen-cli/
+│       ├── Cargo.toml
+│       └── src/
+│           └── main.rs
+├── lib/
+│   ├── main.dart
+│   ├── ffi/
+│   │   └── minidump_bindings.dart
+│   ├── screens/
+│   │   ├── home_screen.dart
+│   │   ├── crash_test_screen.dart
+│   │   └── minidump_list_screen.dart
+│   └── services/
+│       ├── minidump_service.dart
+│       └── platform_service.dart
+├── ios/
+├── android/
+├── linux/
+├── windows/
+├── macos/
+├── pubspec.yaml
+└── test/
 ```
+
+## Implementation Status
+
+### Phase 1: Project Migration ✓
+- [x] Created Rust workspace structure
+- [x] Moved minidump-handler to rust/
+- [x] Renamed and moved minidump-gen to rust/minidump-gen-cli
+- [x] Created Flutter project with all platforms
+
+### Phase 2: FFI Integration (In Progress)
+- [ ] Implement dart:ffi bindings for minidump-handler
+- [ ] Platform-specific library loading
+- [ ] Build scripts for each platform
+
+### Phase 3: UI Implementation
+- [ ] Home screen with platform info
+- [ ] Crash test scenarios screen
+- [ ] Minidump viewer/exporter screen
+- [ ] Settings for handler configuration
+
+### Phase 4: Platform-Specific Testing
+- [ ] iOS: Test on simulator and physical devices
+- [ ] Android: Test on emulator and physical devices
+- [ ] Linux: Test native builds
+- [ ] Windows: Test native builds
+- [ ] macOS: Test native builds
+
+### Phase 5: Validation & Documentation
+- [ ] Automated minidump validation
+- [ ] Platform-specific build guides
+- [ ] Usage documentation
 
 ## Build Requirements
 
+### General
+- Flutter SDK 3.0+
+- Rust toolchain (stable)
+- Platform-specific tools (see below)
+
+### iOS
 - macOS with Xcode 14.0+
-- Rust toolchain with iOS ARM64 targets:
-  - `rustup target add aarch64-apple-ios`
-  - `rustup target add aarch64-apple-ios-sim`
-- iOS 15.0+ deployment target
-- Swift 5.5+
-- Physical iOS device or M1+ Mac for testing (ARM64 only)
+- `rustup target add aarch64-apple-ios aarch64-apple-ios-sim`
 
-## Progress Tracking
+### Android
+- Android Studio / Android SDK
+- NDK for native builds
+- `rustup target add aarch64-linux-android armv7-linux-androideabi`
 
-### Current Status
-- Project initialized with minidump-writer submodule
-- Basic project structure planned
-- Working on Rust FFI library implementation
+### Linux
+- Standard build tools (gcc, cmake)
+- GTK development headers
 
-### Next Steps
-1. Create RustLib directory and Cargo project
-2. Implement FFI wrapper functions
-3. Set up iOS build configuration
+### Windows
+- Visual Studio 2019+ with C++ tools
+- Windows SDK
 
-## Development Notes
+### macOS
+- Xcode command line tools
+- `rustup target add aarch64-apple-darwin x86_64-apple-darwin`
 
-### FFI Pattern
-```rust
-// Rust side
-#[no_mangle]
-pub extern "C" fn minidump_writer_ios_init() -> i32 {
-    // Implementation
-}
-```
+## Key Design Decisions
 
-```swift
-// Swift side
-@_silgen_name("minidump_writer_ios_init")
-func minidumpWriterInit() -> Int32
+### 1. Flutter over Native
+- **Rationale**: Single codebase for testing across all platforms
+- **Benefit**: Consistent test scenarios and UI
+- **Trade-off**: Additional complexity in FFI setup
 
-// Or via module map
-import MinidumpWriterFFI
-```
+### 2. Workspace Structure
+- **minidump-handler**: Shared library for all platforms
+- **minidump-gen-cli**: Standalone tool for quick testing
+- **Benefit**: Clear separation of concerns
 
-### Build Commands
+### 3. Direct FFI over Platform Channels
+- **Rationale**: Direct access to Rust library without platform-specific code
+- **Benefit**: Simpler architecture, better performance
+- **Trade-off**: More complex initial setup
+
+## Testing Strategy
+
+### Crash Scenarios
+Each platform will test:
+- SIGSEGV (null pointer dereference)
+- SIGBUS (bus error) - where applicable
+- SIGABRT (assertion failure)
+- Stack overflow
+- Divide by zero
+- Platform-specific crashes (e.g., EXC_BAD_ACCESS on iOS)
+
+### Validation
+- Automated checks for minidump completeness
+- Thread state verification
+- Memory region validation
+- System info accuracy
+
+## Development Workflow
+
 ```bash
-# Build Rust library for iOS
-cd RustLib
-./build_ios.sh
+# Build Rust libraries
+cd rust
+cargo build --release
 
-# Open Xcode project
-open MinidumpWriterExample/MinidumpWriterExample.xcodeproj
+# Run Flutter app
+flutter run
+
+# Test CLI tool
+cd rust/minidump-gen-cli
+cargo run -- crash segfault
 ```
-
-## Known Constraints
-
-1. **No macOS Development Machine**: Initial development without access to macOS/Xcode
-   - **CRITICAL**: Code quality must be exceptional as review/testing is deferred
-   - All iOS APIs and patterns must be correctly implemented first time
-   - No room for "hack and see" development approach
-
-2. **Testing Limitations**: Cannot validate functionality until macOS access
-   - Must rely on documentation and best practices
-   - Code must be self-evidently correct
-
-3. **Quality Requirements**: 
-   - This is a test harness for a critical safety component
-   - Incorrect implementation will be discovered and must be avoided
-   - Better to implement less but correctly than more with errors
 
 ## References
 
-- minidump-writer TASKS.md: T-012
-- minidump-writer iOS implementation: deps/minidump-writer/src/ios/
-- Apple FFI Documentation: https://developer.apple.com/documentation/swift/imported_c_and_objective-c_apis
+- Original task: minidump-writer TASKS.md: T-012
+- minidump-writer source: deps/minidump-writer/src/
+- Flutter FFI guide: https://docs.flutter.dev/development/platform-integration/c-interop
+- Rust FFI: https://doc.rust-lang.org/nomicon/ffi.html

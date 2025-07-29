@@ -1,0 +1,13 @@
+[package]
+name = "minidump-flutter-bridge"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.11.1"
+minidump-handler = { path = "../minidump-handler" }
+anyhow.workspace = true

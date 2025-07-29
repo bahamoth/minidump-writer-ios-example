@@ -1,0 +1,20 @@
+[workspace]
+members = [
+    "minidump-handler",
+    "minidump-gen-cli", "minidump-flutter-bridge",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.70"
+
+[workspace.dependencies]
+anyhow = "1.0"
+libc = "0.2"
+
+[profile.release]
+# 크래시 덤프를 위해 디버그 심볼 유지
+debug = true
+# 스택 언와인딩 최적화 비활성화 (정확한 스택 추적을 위해)
+panic = "abort"
