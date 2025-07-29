@@ -82,10 +82,16 @@ minidump-writer-flutter-test/
 - [x] Renamed and moved minidump-gen to rust/minidump-gen-cli
 - [x] Created Flutter project with all platforms
 
-### Phase 2: FFI Integration (In Progress)
-- [ ] Implement dart:ffi bindings for minidump-handler
-- [ ] Platform-specific library loading
-- [ ] Build scripts for each platform
+### Phase 2: FFI Integration ✓ (Module Load Issue)
+- [x] Implement dart:ffi bindings for minidump-handler
+- [x] Platform-specific library loading
+- [x] Build scripts for each platform
+
+**⚠️ KNOWN ISSUE**: Flutter app launches successfully but FFI module loading fails. Need to investigate:
+- Check if library path is correct at runtime
+- Verify library symbols are exported correctly
+- Debug ExternalLibrary.open() path resolution
+- Possible signing/entitlement issues on macOS
 
 ### Phase 3: UI Implementation
 - [ ] Home screen with platform info

@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildErrorView() {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -101,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMainView() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

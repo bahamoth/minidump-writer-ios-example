@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:ffi';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import '../src/rust/api.dart';
 import '../src/rust/frb_generated.dart';
 
@@ -18,8 +20,10 @@ class MinidumpService {
   Future<void> initialize() async {
     if (_initialized) return;
     
-    // Initialize flutter_rust_bridge
-    await RustLib.init();
+    // Initialize flutter_rust_bridge with platform-specific library
+    await RustLib.init(
+      externalLibrary: await _loadExternalLibrary(),
+    );
     _api = MinidumpApi();
     
     // Get platform-specific directory
@@ -38,6 +42,30 @@ class MinidumpService {
     }
     
     _initialized = true;
+  }
+  
+  /// Load external library for FFI
+  Future<ExternalLibrary> _loadExternalLibrary() async {
+    if (Platform.isMacOS) {
+      // For macOS development, use the library from the macos directory
+      final libPath = 'macos/libminidump_flutter_bridge.dylib';
+      if (await File(libPath).exists()) {
+        return ExternalLibrary.open(libPath);
+      }
+      // Fall back to release directory
+      return ExternalLibrary.open('rust/target/release/libminidump_flutter_bridge.dylib');
+    } else if (Platform.isIOS) {
+      // For iOS, use process library
+      return ExternalLibrary.process(iKnowHowToUseIt: true);
+    } else if (Platform.isAndroid) {
+      return ExternalLibrary.open('libminidump_flutter_bridge.so');
+    } else if (Platform.isLinux) {
+      return ExternalLibrary.open('libminidump_flutter_bridge.so');
+    } else if (Platform.isWindows) {
+      return ExternalLibrary.open('minidump_flutter_bridge.dll');
+    } else {
+      throw UnsupportedError('Platform not supported: ${Platform.operatingSystem}');
+    }
   }
   
   /// Get platform-specific dump directory

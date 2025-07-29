@@ -1,0 +1,11 @@
+targets:
+  $default:
+    builders:
+      # Configure flutter_rust_bridge code generation
+      flutter_rust_bridge_codegen:
+        options:
+          rust_input: 
+            - "rust/minidump-flutter-bridge/src/api/mod.rs"
+          dart_output: "lib/src/rust"
+          rust_output: "rust/minidump-flutter-bridge/src/frb_generated.rs"
+          class_name: "RustLib"

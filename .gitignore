@@ -44,6 +44,8 @@ app.*.map.json
 
 # Rust
 /rust/target/
+/minidump-gen/target/
+/minidump-handler/target/
 **/*.rs.bk
 Cargo.lock
 

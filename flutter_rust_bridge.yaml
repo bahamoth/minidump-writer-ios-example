@@ -1,0 +1,8 @@
+# Flutter Rust Bridge Configuration
+rust_input: "crate::api"
+rust_root: "rust/minidump-flutter-bridge/"
+dart_output: "lib/src/rust"
+rust_output: "rust/minidump-flutter-bridge/src/frb_generated.rs"
+dart_entrypoint_class_name: "RustLib"
+full_dep: true
+dump: []

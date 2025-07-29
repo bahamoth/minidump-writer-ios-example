@@ -93,6 +93,66 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
+  String cst_encode_AnyhowException(AnyhowException raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
+  String cst_encode_String(String raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  JSAny cst_encode_box_autoadd_minidump_api(MinidumpApi raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_minidump_api(raw);
+  }
+
+  @protected
+  JSAny cst_encode_list_prim_u_8_strict(Uint8List raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_minidump_api(MinidumpApi raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_minidump_result(MinidumpResult raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_bool(raw.success),
+      cst_encode_opt_String(raw.error),
+    ].jsify()!;
+  }
+
+  @protected
+  String? cst_encode_opt_String(String? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? null : cst_encode_String(raw);
+  }
+
+  @protected
+  bool cst_encode_bool(bool raw);
+
+  @protected
+  int cst_encode_crash_type(CrashType raw);
+
+  @protected
+  int cst_encode_i_32(int raw);
+
+  @protected
+  int cst_encode_u_8(int raw);
+
+  @protected
+  void cst_encode_unit(void raw);
+
+  @protected
   void sse_encode_AnyhowException(
     AnyhowException self,
     SseSerializer serializer,
@@ -145,6 +205,44 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
 class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__minidump_api_has_crash_triggers(JSAny that) =>
+      wasmModule.wire__crate__api__minidump_api_has_crash_triggers(that);
+
+  void wire__crate__api__minidump_api_install_handlers(
+    NativePortType port_,
+    JSAny that,
+    String dump_path,
+  ) => wasmModule.wire__crate__api__minidump_api_install_handlers(
+    port_,
+    that,
+    dump_path,
+  );
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__minidump_api_new() =>
+      wasmModule.wire__crate__api__minidump_api_new();
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__minidump_api_test(JSAny that) =>
+      wasmModule.wire__crate__api__minidump_api_test(that);
+
+  void wire__crate__api__minidump_api_trigger_crash(
+    NativePortType port_,
+    JSAny that,
+    int crash_type,
+  ) => wasmModule.wire__crate__api__minidump_api_trigger_crash(
+    port_,
+    that,
+    crash_type,
+  );
+
+  void wire__crate__api__minidump_api_write_dump(
+    NativePortType port_,
+    JSAny that,
+    String path,
+  ) => wasmModule.wire__crate__api__minidump_api_write_dump(port_, that, path);
 }
 
 @JS('wasm_bindgen')
@@ -152,4 +250,31 @@ external RustLibWasmModule get wasmModule;
 
 @JS()
 @anonymous
-extension type RustLibWasmModule._(JSObject _) implements JSObject {}
+extension type RustLibWasmModule._(JSObject _) implements JSObject {
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__minidump_api_has_crash_triggers(JSAny that);
+
+  external void wire__crate__api__minidump_api_install_handlers(
+    NativePortType port_,
+    JSAny that,
+    String dump_path,
+  );
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__minidump_api_new();
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__minidump_api_test(JSAny that);
+
+  external void wire__crate__api__minidump_api_trigger_crash(
+    NativePortType port_,
+    JSAny that,
+    int crash_type,
+  );
+
+  external void wire__crate__api__minidump_api_write_dump(
+    NativePortType port_,
+    JSAny that,
+    String path,
+  );
+}

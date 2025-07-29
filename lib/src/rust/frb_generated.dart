@@ -110,12 +110,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_minidump_api(that, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+          var arg0 = cst_encode_box_autoadd_minidump_api(that);
+          return wire.wire__crate__api__minidump_api_has_crash_triggers(arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiMinidumpApiHasCrashTriggersConstMeta,
@@ -139,19 +138,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_minidump_api(that, serializer);
-          sse_encode_String(dumpPath, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 2,
-            port: port_,
+          var arg0 = cst_encode_box_autoadd_minidump_api(that);
+          var arg1 = cst_encode_String(dumpPath);
+          return wire.wire__crate__api__minidump_api_install_handlers(
+            port_,
+            arg0,
+            arg1,
           );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_minidump_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_minidump_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiMinidumpApiInstallHandlersConstMeta,
         argValues: [that, dumpPath],
@@ -171,11 +168,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
+          return wire.wire__crate__api__minidump_api_new();
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_minidump_api,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_minidump_api,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiMinidumpApiNewConstMeta,
@@ -193,12 +189,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_minidump_api(that, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
+          var arg0 = cst_encode_box_autoadd_minidump_api(that);
+          return wire.wire__crate__api__minidump_api_test(arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiMinidumpApiTestConstMeta,
@@ -219,19 +214,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_minidump_api(that, serializer);
-          sse_encode_crash_type(crashType, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 5,
-            port: port_,
+          var arg0 = cst_encode_box_autoadd_minidump_api(that);
+          var arg1 = cst_encode_crash_type(crashType);
+          return wire.wire__crate__api__minidump_api_trigger_crash(
+            port_,
+            arg0,
+            arg1,
           );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiMinidumpApiTriggerCrashConstMeta,
         argValues: [that, crashType],
@@ -254,19 +247,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_minidump_api(that, serializer);
-          sse_encode_String(path, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 6,
-            port: port_,
+          var arg0 = cst_encode_box_autoadd_minidump_api(that);
+          var arg1 = cst_encode_String(path);
+          return wire.wire__crate__api__minidump_api_write_dump(
+            port_,
+            arg0,
+            arg1,
           );
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_minidump_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_minidump_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiMinidumpApiWriteDumpConstMeta,
         argValues: [that, path],
@@ -444,6 +435,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_decode_unit(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  bool cst_encode_bool(bool raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_crash_type(CrashType raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_i_32(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_u_8(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  void cst_encode_unit(void raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
   }
 
   @protected
